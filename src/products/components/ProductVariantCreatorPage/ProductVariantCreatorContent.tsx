@@ -2,10 +2,10 @@ import React from "react";
 
 import { ProductDetails_product_productType_variantAttributes } from "@saleor/products/types/ProductDetails";
 import { ProductVariantBulkCreate_productVariantBulkCreate_errors } from "@saleor/products/types/ProductVariantBulkCreate";
-import { isSelected } from "@saleor/utils/lists";
 import { WarehouseFragment } from "@saleor/warehouses/types/WarehouseFragment";
+import { isSelected } from "@saleor/utils/lists";
 import { ProductVariantCreateFormData } from "./form";
-import ProductVariantCreatePrices from "./ProductVariantCreatorPrices";
+import ProductVariantCreatePriceAndSku from "./ProductVariantCreatorPriceAndSku";
 import ProductVariantCreateSummary from "./ProductVariantCreatorSummary";
 import ProductVariantCreateValues from "./ProductVariantCreatorValues";
 import {
@@ -24,16 +24,15 @@ export interface ProductVariantCreatorContentProps {
   warehouses: WarehouseFragment[];
 }
 
-const ProductVariantCreatorContent: React.FC<ProductVariantCreatorContentProps> = props => {
-  const {
-    attributes,
-    currencySymbol,
-    data,
-    dispatchFormDataAction,
-    errors,
-    step,
-    warehouses
-  } = props;
+const ProductVariantCreatorContent: React.FC<ProductVariantCreatorContentProps> = ({
+  attributes,
+  currencySymbol,
+  data,
+  dispatchFormDataAction,
+  errors,
+  step,
+  warehouses
+}) => {
   const selectedAttributes = attributes.filter(attribute =>
     isSelected(
       attribute.id,
@@ -60,14 +59,15 @@ const ProductVariantCreatorContent: React.FC<ProductVariantCreatorContentProps> 
         />
       )}
       {step === ProductVariantCreatorStep.prices && (
-        <ProductVariantCreatePrices
+        <ProductVariantCreatePriceAndSku
           attributes={selectedAttributes}
           currencySymbol={currencySymbol}
           data={data}
-          onApplyPriceOrStockChange={(all, type) =>
+          warehouses={warehouses}
+          onApplyToAllChange={(mode, type) =>
             dispatchFormDataAction({
               applyPriceOrStockToAll: {
-                all
+                mode
               },
               type:
                 type === "price"
@@ -75,17 +75,24 @@ const ProductVariantCreatorContent: React.FC<ProductVariantCreatorContentProps> 
                   : ProductVariantCreateReducerActionType.applyStockToAll
             })
           }
-          // TODO: Stock change is not fixed in this PR so we won't include it here
-          onApplyToAllChange={(price, type) =>
-            dispatchFormDataAction(
-              type === "price" && {
-                changeApplyPriceToAllValue: {
-                  price
-                },
-                type:
-                  ProductVariantCreateReducerActionType.changeApplyPriceToAllValue
-              }
-            )
+          onApplyToAllPriceChange={price =>
+            dispatchFormDataAction({
+              changeApplyPriceToAllValue: {
+                price
+              },
+              type:
+                ProductVariantCreateReducerActionType.changeApplyPriceToAllValue
+            })
+          }
+          onApplyToAllStockChange={(quantity, warehouseIndex) =>
+            dispatchFormDataAction({
+              changeApplyStockToAllValue: {
+                quantity,
+                warehouseIndex
+              },
+              type:
+                ProductVariantCreateReducerActionType.changeApplyStockToAllValue
+            })
           }
           onAttributeSelect={(attributeId, type) =>
             dispatchFormDataAction({
@@ -98,18 +105,34 @@ const ProductVariantCreatorContent: React.FC<ProductVariantCreatorContentProps> 
                   : ProductVariantCreateReducerActionType.changeApplyStockToAttributeId
             })
           }
-          // TODO: Stock change is not fixed in this PR so we won't include it here
-          onAttributeValueChange={(valueId, price, type) =>
-            dispatchFormDataAction(
-              type === "price" && {
-                changeAttributeValuePrice: {
-                  price,
-                  valueId
-                },
-                type:
-                  ProductVariantCreateReducerActionType.changeAttributeValuePrice
-              }
-            )
+          onAttributePriceChange={(valueId, price) =>
+            dispatchFormDataAction({
+              changeAttributeValuePrice: {
+                price,
+                valueId
+              },
+              type:
+                ProductVariantCreateReducerActionType.changeAttributeValuePrice
+            })
+          }
+          onAttributeStockChange={(valueId, quantity, warehouseIndex) =>
+            dispatchFormDataAction({
+              changeAttributeValueStock: {
+                quantity,
+                valueId,
+                warehouseIndex
+              },
+              type:
+                ProductVariantCreateReducerActionType.changeAttributeValueStock
+            })
+          }
+          onWarehouseToggle={warehouseId =>
+            dispatchFormDataAction({
+              changeWarehouses: {
+                warehouseId
+              },
+              type: ProductVariantCreateReducerActionType.changeWarehouses
+            })
           }
         />
       )}

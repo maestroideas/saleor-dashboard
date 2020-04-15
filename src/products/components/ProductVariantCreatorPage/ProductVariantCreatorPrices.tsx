@@ -15,9 +15,11 @@ import Hr from "@saleor/components/Hr";
 import SingleSelectField from "@saleor/components/SingleSelectField";
 import { ProductDetails_product_productType_variantAttributes } from "@saleor/products/types/ProductDetails";
 import CardTitle from "@saleor/components/CardTitle";
-import CardSpacer from "@saleor/components/CardSpacer";
-import { ProductVariantCreateFormData } from "./form";
-import { getPriceAttributeValues, getStockAttributeValues } from "./utils";
+import {
+  ProductVariantCreateFormData,
+  VariantCreatorPricesAndSkuMode
+} from "./form";
+import { getPriceAttributeValues } from "./utils";
 
 const useStyles = makeStyles(
   theme => ({
@@ -38,19 +40,14 @@ const useStyles = makeStyles(
   { name: "ProductVariantCreatorPrices" }
 );
 
-export type PriceOrStock = "price" | "stock";
 export interface ProductVariantCreatorPricesProps {
   attributes: ProductDetails_product_productType_variantAttributes[];
   currencySymbol: string;
   data: ProductVariantCreateFormData;
-  onApplyPriceOrStockChange: (applyToAll: boolean, type: PriceOrStock) => void;
-  onApplyToAllChange: (value: string, type: PriceOrStock) => void;
-  onAttributeSelect: (id: string, type: PriceOrStock) => void;
-  onAttributeValueChange: (
-    id: string,
-    value: string,
-    type: PriceOrStock
-  ) => void;
+  onApplyToAllChange: (applyToAll: VariantCreatorPricesAndSkuMode) => void;
+  onApplyToAllPriceChange: (value: string) => void;
+  onAttributeSelect: (id: string) => void;
+  onAttributeValueChange: (id: string, value: string) => void;
 }
 
 const ProductVariantCreatorPrices: React.FC<ProductVariantCreatorPricesProps> = props => {
@@ -58,8 +55,8 @@ const ProductVariantCreatorPrices: React.FC<ProductVariantCreatorPricesProps> = 
     attributes,
     currencySymbol,
     data,
-    onApplyPriceOrStockChange,
     onApplyToAllChange,
+    onApplyToAllPriceChange,
     onAttributeSelect,
     onAttributeValueChange
   } = props;
@@ -71,240 +68,120 @@ const ProductVariantCreatorPrices: React.FC<ProductVariantCreatorPricesProps> = 
     value: attribute.id
   }));
   const priceAttributeValues = getPriceAttributeValues(data, attributes);
-  const stockAttributeValues = getStockAttributeValues(data, attributes);
 
   return (
-    <>
-      <Card>
-        <CardTitle
-          title={intl.formatMessage({
-            defaultMessage: "Price",
-            description: "variant price, header"
-          })}
-        />
-        <CardContent>
-          <RadioGroup
-            value={data.price.all ? "applyToAll" : "applyToAttribute"}
-          >
-            <FormControlLabel
-              value="applyToAll"
-              control={<Radio color="primary" />}
-              label={intl.formatMessage({
-                defaultMessage: "Apply single price to all SKUs"
-              })}
-              onChange={() => onApplyPriceOrStockChange(true, "price")}
-            />
+    <Card>
+      <CardTitle
+        title={intl.formatMessage({
+          defaultMessage: "Price",
+          description: "variant price, header"
+        })}
+      />
+      <CardContent>
+        <RadioGroup value={data.price.mode}>
+          <FormControlLabel
+            value="all"
+            control={<Radio color="primary" />}
+            label={intl.formatMessage({
+              defaultMessage: "Apply single price to all SKUs"
+            })}
+            onChange={() => onApplyToAllChange("all")}
+          />
+          <FormSpacer />
+          <TextField
+            className={classes.shortInput}
+            inputProps={{
+              min: 0,
+              type: "number"
+            }}
+            InputProps={{
+              endAdornment: currencySymbol
+            }}
+            label={intl.formatMessage({
+              defaultMessage: "Price",
+              id: "productVariantCreatePricesPriceInputLabel"
+            })}
+            value={data.price.value}
+            onChange={event => onApplyToAllPriceChange(event.target.value)}
+          />
+          <FormSpacer />
+          <FormControlLabel
+            value="attribute"
+            control={<Radio color="primary" />}
+            label={intl.formatMessage({
+              defaultMessage: "Apply unique prices by attribute to each SKU"
+            })}
+            onChange={() => onApplyToAllChange("attribute")}
+          />
+        </RadioGroup>
+        {data.price.mode === "attribute" && (
+          <>
             <FormSpacer />
-            <TextField
-              className={classes.shortInput}
-              inputProps={{
-                min: 0,
-                type: "number"
-              }}
-              InputProps={{
-                endAdornment: currencySymbol
-              }}
-              label={intl.formatMessage({
-                defaultMessage: "Price",
-                id: "productVariantCreatePricesPriceInputLabel"
-              })}
-              value={data.price.value}
-              onChange={event =>
-                onApplyToAllChange(event.target.value, "price")
-              }
-            />
-            <FormSpacer />
-            <FormControlLabel
-              value="applyToAttribute"
-              control={<Radio color="primary" />}
-              label={intl.formatMessage({
-                defaultMessage: "Apply unique prices by attribute to each SKU"
-              })}
-              onChange={() => onApplyPriceOrStockChange(false, "price")}
-            />
-          </RadioGroup>
-          {!data.price.all && (
-            <>
-              <FormSpacer />
-              <Grid variant="uniform">
-                <div className={classes.label}>
-                  <Typography>
-                    <FormattedMessage
-                      defaultMessage="Choose attribute"
-                      description="variant attribute"
-                    />
-                  </Typography>
-                </div>
-                <div>
-                  <SingleSelectField
-                    choices={attributeChoices}
-                    label={intl.formatMessage({
-                      defaultMessage: "Attribute",
-                      description: "variant attribute"
-                    })}
-                    value={data.price.attribute}
-                    onChange={event =>
-                      onAttributeSelect(event.target.value, "price")
-                    }
+            <Grid variant="uniform">
+              <div className={classes.label}>
+                <Typography>
+                  <FormattedMessage
+                    defaultMessage="Choose attribute"
+                    description="variant attribute"
                   />
-                </div>
-              </Grid>
-              {priceAttributeValues &&
-                priceAttributeValues.map(attributeValue => (
-                  <React.Fragment key={attributeValue.id}>
-                    <Hr className={classes.hrAttribute} />
-                    <FormSpacer />
-                    <Grid variant="uniform">
-                      <div className={classes.label}>
-                        <Typography>{attributeValue.name}</Typography>
-                      </div>
-                      <div>
-                        <TextField
-                          label={intl.formatMessage({
-                            defaultMessage: "Price",
-                            description: "variant price",
-                            id: "productVariantCreatePricesSetPricePlaceholder"
-                          })}
-                          inputProps={{
-                            min: 0,
-                            type: "number"
-                          }}
-                          InputProps={{
-                            endAdornment: currencySymbol
-                          }}
-                          fullWidth
-                          value={
-                            data.price.values.find(
-                              value => value.slug === attributeValue.slug
-                            ).value
-                          }
-                          onChange={event =>
-                            onAttributeValueChange(
-                              attributeValue.slug,
-                              event.target.value,
-                              "price"
-                            )
-                          }
-                        />
-                      </div>
-                    </Grid>
-                  </React.Fragment>
-                ))}
-            </>
-          )}
-        </CardContent>
-      </Card>
-      <CardSpacer />
-      <Card>
-        <CardTitle
-          title={intl.formatMessage({
-            defaultMessage: "Stock",
-            description: "variant stock, header"
-          })}
-        />
-        <CardContent>
-          <RadioGroup
-            value={data.stock.all ? "applyToAll" : "applyToAttribute"}
-          >
-            <FormControlLabel
-              value="applyToAll"
-              control={<Radio color="primary" />}
-              label={intl.formatMessage({
-                defaultMessage: "Apply single stock to all SKUs"
-              })}
-              onChange={() => onApplyPriceOrStockChange(true, "stock")}
-            />
-            <FormSpacer />
-            <TextField
-              className={classes.shortInput}
-              inputProps={{
-                min: 0,
-                type: "number"
-              }}
-              label={intl.formatMessage({
-                defaultMessage: "Stock",
-                id: "productVariantCreatePricesStockInputLabel"
-              })}
-              value={data.stock.value}
-              onChange={event =>
-                onApplyToAllChange(event.target.value, "stock")
-              }
-            />
-            <FormSpacer />
-            <FormControlLabel
-              value="applyToAttribute"
-              control={<Radio color="primary" />}
-              label={intl.formatMessage({
-                defaultMessage: "Apply unique stock by attribute to each SKU"
-              })}
-              onChange={() => onApplyPriceOrStockChange(false, "stock")}
-            />
-          </RadioGroup>
-          {!data.stock.all && (
-            <>
-              <FormSpacer />
-              <Grid variant="uniform">
-                <div className={classes.label}>
-                  <Typography>
-                    <FormattedMessage
-                      defaultMessage="Choose attribute"
-                      description="variant attribute"
-                    />
-                  </Typography>
-                </div>
-                <div>
-                  <SingleSelectField
-                    choices={attributeChoices}
-                    label={intl.formatMessage({
-                      defaultMessage: "Attribute",
-                      description: "variant attribute"
-                    })}
-                    value={data.stock.attribute}
-                    onChange={event =>
-                      onAttributeSelect(event.target.value, "stock")
-                    }
-                  />
-                </div>
-              </Grid>
-              {stockAttributeValues &&
-                stockAttributeValues.map(attributeValue => (
-                  <React.Fragment key={attributeValue.id}>
-                    <Hr className={classes.hrAttribute} />
-                    <FormSpacer />
-                    <Grid variant="uniform">
-                      <div className={classes.label}>
-                        <Typography>{attributeValue.name}</Typography>
-                      </div>
-                      <div>
-                        <TextField
-                          label={intl.formatMessage({
-                            defaultMessage: "Stock",
-                            description: "variant stock",
-                            id: "productVariantCreatePricesSetStockPlaceholder"
-                          })}
-                          fullWidth
-                          value={
-                            data.stock.values.find(
-                              value => value.slug === attributeValue.slug
-                            ).value
-                          }
-                          onChange={event =>
-                            onAttributeValueChange(
-                              attributeValue.slug,
-                              event.target.value,
-                              "stock"
-                            )
-                          }
-                        />
-                      </div>
-                    </Grid>
-                  </React.Fragment>
-                ))}
-            </>
-          )}
-        </CardContent>
-      </Card>
-    </>
+                </Typography>
+              </div>
+              <div>
+                <SingleSelectField
+                  choices={attributeChoices}
+                  label={intl.formatMessage({
+                    defaultMessage: "Attribute",
+                    description: "variant attribute"
+                  })}
+                  value={data.price.attribute}
+                  onChange={event => onAttributeSelect(event.target.value)}
+                />
+              </div>
+            </Grid>
+            {priceAttributeValues &&
+              priceAttributeValues.map(attributeValue => (
+                <React.Fragment key={attributeValue.id}>
+                  <Hr className={classes.hrAttribute} />
+                  <FormSpacer />
+                  <Grid variant="uniform">
+                    <div className={classes.label}>
+                      <Typography>{attributeValue.name}</Typography>
+                    </div>
+                    <div>
+                      <TextField
+                        label={intl.formatMessage({
+                          defaultMessage: "Price",
+                          description: "variant price",
+                          id: "productVariantCreatePricesSetPricePlaceholder"
+                        })}
+                        inputProps={{
+                          min: 0,
+                          type: "number"
+                        }}
+                        InputProps={{
+                          endAdornment: currencySymbol
+                        }}
+                        fullWidth
+                        value={
+                          data.price.values.find(
+                            value => value.slug === attributeValue.slug
+                          ).value
+                        }
+                        onChange={event =>
+                          onAttributeValueChange(
+                            attributeValue.slug,
+                            event.target.value
+                          )
+                        }
+                      />
+                    </div>
+                  </Grid>
+                </React.Fragment>
+              ))}
+          </>
+        )}
+      </CardContent>
+    </Card>
   );
 };
 
