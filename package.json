@@ -180,6 +180,8 @@
     "check-types": "tsc --noEmit",
     "generate-component": "plop --plopfile .plop/plopfile.js",
     "start": "webpack-dev-server --open -d",
+    "start:emulator": "npm run build && npm run emulator",
+    "emulator": "firebase emulators:start --only hosting",
     "storybook": "start-storybook -p 3000 -c src/storybook/",
     "build-storybook": "build-storybook -c src/storybook/ -o build/storybook",
     "test": "jest src/",
